@@ -20,7 +20,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const s3 = require("./lib/s3");
 const dbUtils = require("./lib/db-utils");
 
-const WRITE_TO_FAUNA = false;
+const WRITE_TO_FAUNA = true;
 
 async function execute() {
     Puppeteer.use(StealthPlugin());
