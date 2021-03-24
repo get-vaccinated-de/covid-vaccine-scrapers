@@ -6,19 +6,19 @@ const lodash = require("lodash");
 
 describe("FaunaDB Utils", function () {
     const dbUtils = require("../lib/db-utils");
-    it("can create, retrieve, and delete docs from Locations collection", async () => {
+    it("can create, retrieve, and delete docs from Locations collection (once doc at a time)", async () => {
         const randomName = Math.random().toString(36).substring(7);
         const collectionName = "locations";
-        const data = {
+        const location = {
             name: `RandomName-${randomName}`,
             address: { street: "1 Main St", city: "Newton", zip: "02458" },
             signUpLink: "www.google.com",
         };
-        const generatedId = await dbUtils.generateLocationId({
-            name: data.name,
-            steet: data.address.street,
-            city: data.address.city,
-            zip: data.address.zip,
+        const generatedId = dbUtils.generateLocationId({
+            name: location.name,
+            steet: location.address.street,
+            city: location.address.city,
+            zip: location.address.zip,
         });
 
         await expect(
@@ -31,7 +31,7 @@ describe("FaunaDB Utils", function () {
 
         await dbUtils.writeLocationByRefId({
             refId: generatedId,
-            ...data,
+            ...location,
         });
 
         await expect(
@@ -58,13 +58,88 @@ describe("FaunaDB Utils", function () {
                     id: generatedId,
                 },
             },
-            data,
+            data: location,
         });
 
         await dbUtils.deleteItemByRefId(collectionName, generatedId);
         await expect(
             dbUtils.retrieveItemByRefId(collectionName, generatedId)
         ).to.eventually.be.rejectedWith("instance not found");
+    }).timeout(3000);
+
+    it("can create, retrieve, and delete docs from Locations collection (in batches)", async () => {
+        const collectionName = "locations";
+        const locations = [
+            {
+                name: `RandomName-${Math.random().toString(36).substring(7)}`,
+                street: "1 Main St",
+                city: "Newton",
+                zip: "02458",
+                signUpLink: "www.google.com",
+            },
+            {
+                name: `RandomName-${Math.random().toString(36).substring(7)}`,
+                street: "2 Main St",
+                city: "Newton",
+                zip: "02458",
+                signUpLink: "www.google.com",
+            },
+        ];
+
+        // this should really add the ids to the input locations object...
+        const generatedIds = dbUtils.generateLocationIds(locations);
+
+        await expect(
+            dbUtils.retrieveItemsByRefIds(collectionName, generatedIds)
+        ).to.eventually.be.rejectedWith("instance not found");
+
+        await expect(
+            dbUtils.checkItemsExistByRefIds(collectionName, generatedIds)
+        ).to.eventually.deep.equal([false, false]);
+
+        // generatedIds match up to locations (order has stayed the same)
+        await dbUtils.writeLocationsByRefIds(generatedIds, locations);
+
+        await expect(
+            dbUtils.checkItemsExistByRefIds(collectionName, generatedIds)
+        ).to.eventually.deep.equal([true, true]);
+
+        const retrieveResult = await dbUtils.retrieveItemsByRefIds(
+            collectionName,
+            generatedIds
+        );
+        const filteredResults = retrieveResult.map(
+            (entry) => lodash.omit(entry, ["ts", "ref"]) // remove the timestamp and reference, too complicated to check against
+        );
+        expect(filteredResults).to.deep.equal([
+            {
+                data: {
+                    name: locations[0].name,
+                    address: {
+                        street: locations[0].street,
+                        city: locations[0].city,
+                        zip: locations[0].zip,
+                    },
+                    signUpLink: locations[0].signUpLink,
+                },
+            },
+            {
+                data: {
+                    name: locations[1].name,
+                    address: {
+                        street: locations[1].street,
+                        city: locations[1].city,
+                        zip: locations[1].zip,
+                    },
+                    signUpLink: locations[1].signUpLink,
+                },
+            },
+        ]);
+
+        await dbUtils.deleteItemsByRefIds(collectionName, generatedIds);
+        await expect(
+            dbUtils.checkItemsExistByRefIds(collectionName, generatedIds)
+        ).to.eventually.deep.equal([false, false]);
     }).timeout(3000);
 
     it("given one scraper's output, can create, retrieve, and delete docs from Locations, ScraperRuns, and Appointments collections", async () => {
