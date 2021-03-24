@@ -18,6 +18,9 @@ const Recaptcha = require("puppeteer-extra-plugin-recaptcha");
 const scrapers = require("./site-scrapers");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const s3 = require("./lib/s3");
+const dbUtils = require("./lib/db-utils");
+
+const WRITE_TO_FAUNA = false;
 
 async function execute() {
     Puppeteer.use(StealthPlugin());
@@ -65,7 +68,6 @@ async function execute() {
                     const numberAppointments = getTotalNumberOfAppointments(
                         result
                     );
-                    // TODO - call FaunaDB util method here!
                     await logScraperRun(
                         scraper.name,
                         isSuccess,
@@ -107,6 +109,30 @@ async function execute() {
             finalResultsArray = scrapedResultsArray;
         }
 
+        const mergedResultsWithCoords = await getAllCoordinates(
+            finalResultsArray,
+            cachedResults
+        );
+        const timestamp = s3.getTimestampForFile();
+
+        if (WRITE_TO_FAUNA) {
+            await Promise.all(
+                mergedResultsWithCoords.map(async (res) => {
+                    await dbUtils.writeScrapedData({
+                        name: res.name,
+                        street: res.street,
+                        city: res.city,
+                        zip: res.zip,
+                        availability: res.availability,
+                        hasAvailability: res.availability,
+                        timestamp,
+                        latitude: res.latitude,
+                        longitude: res.longitude,
+                    });
+                })
+            );
+        }
+
         const responseJson = {
             // Version number of the file
             version: 1,
@@ -116,10 +142,10 @@ async function execute() {
             },
 
             // Timestamp for the archived data.json file.
-            timestamp: s3.getTimestampForFile(),
+            timestamp,
 
             // Add geocoding for all locations
-            results: await getAllCoordinates(finalResultsArray, cachedResults),
+            results: mergedResultsWithCoords,
         };
 
         const webData = JSON.stringify(responseJson);
