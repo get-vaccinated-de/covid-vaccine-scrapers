@@ -116,21 +116,25 @@ async function execute() {
         const timestamp = s3.getTimestampForFile();
 
         if (WRITE_TO_FAUNA) {
-            await Promise.all(
-                mergedResultsWithCoords.map(async (res) => {
-                    await dbUtils.writeScrapedData({
-                        name: res.name,
-                        street: res.street,
-                        city: res.city,
-                        zip: res.zip,
-                        availability: res.availability,
-                        hasAvailability: res.availability,
-                        timestamp,
-                        latitude: res.latitude,
-                        longitude: res.longitude,
-                    });
-                })
+            await dbUtils.writeScrapedDataBatch(
+                mergedResultsWithCoords,
+                timestamp
             );
+            // await Promise.all(
+            //     mergedResultsWithCoords.map(async (res) => {
+            //         await dbUtils.writeScrapedData({
+            //             name: res.name,
+            //             street: res.street,
+            //             city: res.city,
+            //             zip: res.zip,
+            //             availability: res.availability,
+            //             hasAvailability: res.availability,
+            //             timestamp,
+            //             latitude: res.latitude,
+            //             longitude: res.longitude,
+            //         });
+            //     })
+            // );
         }
 
         const responseJson = {
