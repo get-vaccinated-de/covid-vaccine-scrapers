@@ -89,25 +89,25 @@ describe("FaunaDB Utils", function () {
         const locationsWithRefIds = dbUtils.addGeneratedIdsToLocations(
             locations
         );
-        const generatedIds = locationsWithRefIds.map((loc) => loc.refId);
+        const locationRefIds = locationsWithRefIds.map((loc) => loc.refId);
 
         await expect(
-            dbUtils.retrieveItemsByRefIds(collectionName, generatedIds)
+            dbUtils.retrieveItemsByRefIds(collectionName, locationRefIds)
         ).to.eventually.be.rejectedWith("instance not found");
 
         await expect(
-            dbUtils.checkItemsExistByRefIds(collectionName, generatedIds)
+            dbUtils.checkItemsExistByRefIds(collectionName, locationRefIds)
         ).to.eventually.deep.equal([false, false]);
 
         await dbUtils.writeLocationsByRefIds(locationsWithRefIds);
 
         await expect(
-            dbUtils.checkItemsExistByRefIds(collectionName, generatedIds)
+            dbUtils.checkItemsExistByRefIds(collectionName, locationRefIds)
         ).to.eventually.deep.equal([true, true]);
 
         const retrieveResult = await dbUtils.retrieveItemsByRefIds(
             collectionName,
-            generatedIds
+            locationRefIds
         );
         const filteredResults = retrieveResult.map(
             (entry) => lodash.omit(entry, ["ts", "ref"]) // remove the timestamp and reference, too complicated to check against
@@ -137,9 +137,9 @@ describe("FaunaDB Utils", function () {
             },
         ]);
 
-        await dbUtils.deleteItemsByRefIds(collectionName, generatedIds);
+        await dbUtils.deleteItemsByRefIds(collectionName, locationRefIds);
         await expect(
-            dbUtils.checkItemsExistByRefIds(collectionName, generatedIds)
+            dbUtils.checkItemsExistByRefIds(collectionName, locationRefIds)
         ).to.eventually.deep.equal([false, false]);
     }).timeout(3000);
 
