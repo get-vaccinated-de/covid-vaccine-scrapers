@@ -20,7 +20,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const s3 = require("./lib/s3");
 const dbUtils = require("./lib/db-utils");
 
-const WRITE_TO_FAUNA = true;
+const WRITE_TO_FAUNA = false;
 
 async function execute() {
     Puppeteer.use(StealthPlugin());
@@ -120,21 +120,6 @@ async function execute() {
                 mergedResultsWithCoords,
                 timestamp
             );
-            // await Promise.all(
-            //     mergedResultsWithCoords.map(async (res) => {
-            //         await dbUtils.writeScrapedData({
-            //             name: res.name,
-            //             street: res.street,
-            //             city: res.city,
-            //             zip: res.zip,
-            //             availability: res.availability,
-            //             hasAvailability: res.availability,
-            //             timestamp,
-            //             latitude: res.latitude,
-            //             longitude: res.longitude,
-            //         });
-            //     })
-            // );
         }
 
         const responseJson = {
