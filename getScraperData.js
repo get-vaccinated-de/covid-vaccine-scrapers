@@ -5,7 +5,7 @@ const s3 = new AWS.S3();
 exports.handler = async () => {
     const data = await s3
         .getObject({
-            Bucket: "ma-covid-vaccine",
+            Bucket: "de-covid-vaccine",
             Key: "data.json",
         })
         .promise();
